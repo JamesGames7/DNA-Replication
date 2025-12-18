@@ -27,18 +27,27 @@ const renderer = new THREE.WebGLRenderer({canvas: canvas});
 renderer.setSize(800, 600);
 
 let rot = 0;
+const DNAGroup = new THREE.Group();
 for (let x = -30; x <= 30; x += 2) {
-    makeDNA(x, rot, colours[Math.floor(Math.random() * 4)]);
+    DNAGroup.add(makeDNA(x, rot, colours[Math.floor(Math.random() * 4)]));
     rot += Math.PI / 8;
 }
+scene.add(DNAGroup);
 
-renderer.render(scene, camera);
+const tick = () => {
+    renderer.render(scene, camera);
+
+    DNAGroup.rotation.x -= 0.01;
+
+    window.requestAnimationFrame(tick);
+}
+tick();
 
 function makeDNA(xPos, rot, colour) {
     const material = new THREE.MeshStandardMaterial( { color: colour } );
 
     // Geometry
-    let geometry = new THREE.SphereGeometry( 1, 16, 16 );
+    let geometry = new THREE.SphereGeometry( 1, 32, 32 );
     const sphere = new THREE.Mesh( geometry, material );
     sphere.position.y = 10;
 
@@ -53,5 +62,5 @@ function makeDNA(xPos, rot, colour) {
     nucleotide.position.x = xPos;
     nucleotide.rotation.x = rot
 
-    scene.add(nucleotide);
+    return nucleotide;
 }
