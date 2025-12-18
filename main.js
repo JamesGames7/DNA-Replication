@@ -7,6 +7,17 @@ const colours = [
     0xffff00
 ]
 
+const basePairs = {
+    '0xff0000': 0x00ff00,
+    '0x00ff00': 0xff0000,
+    '0x0000ff': 0xffff00,
+    '0xffff00': 0x0000ff,
+    0xff0000: 0x00ff00,
+    0x00ff00: 0xff0000,
+    0x0000ff: 0xffff00,
+    0xffff00: 0x0000ff
+}
+
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xefefff);
@@ -37,17 +48,39 @@ for (let x = 44; x > -44; x -= 2) {
 }
 scene.add(DNAGroup);
 
+// Pair setup
+const Pairs = new THREE.Group();
+DNAGroup.traverse(function (group) {
+    if (group.isGroup) {
+        let material;
+        for (let i = 0; i < group.children.length; i++) {
+            if (group.children[i].isMesh && group.children[i].material) {
+                material = group.children[i].material;
+            }
+        }
+        if (material) {
+            const colour = '0x' + material.color.getHexString();
+            Pairs.add(makeDNA(group.position.x, group.rotation.x - Math.PI, basePairs[colour]));
+        }
+    }
+})
+scene.add(Pairs);
+
 const tick = () => {
     renderer.render(scene, camera);
 
     DNAGroup.rotation.x -= 0.01;
     DNAGroup.position.x += 0.03;
+    Pairs.rotation.x -= 0.01;
+    Pairs.position.x += 0.03;
 
     for (let i = 0; i < DNAGroup.children.length; i++) {
         const child = DNAGroup.children[i];
         if (child.position.x + DNAGroup.position.x > 44) {
             DNAGroup.remove(child);
-            DNAGroup.add(makeDNA(-44 - DNAGroup.position.x, rot, colours[Math.floor(Math.random() * 4)]))
+            const colour = colours[Math.floor(Math.random() * 4)];
+            DNAGroup.add(makeDNA(-44 - DNAGroup.position.x, rot, colour))
+            Pairs.add(makeDNA(-44 - Pairs.position.x, rot - Math.PI, basePairs[colour]))
             rot += Math.PI / 8;
         }
     }
