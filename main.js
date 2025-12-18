@@ -7,6 +7,7 @@ const colours = [
     0xffff00
 ]
 
+// Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xefefff);
 
@@ -16,19 +17,21 @@ light.position.set(0, 0, 10);
 scene.add(light);
 
 // Camera
-const camera = new THREE.OrthographicCamera(-30, 30, 20, -20);
+const camera = new THREE.OrthographicCamera(-40, 40, 30, -30);
 camera.position.z = 50;
 scene.add(camera);
 
 // Canvas
 const canvas = document.querySelector('#scene');
 
+// Renderer
 const renderer = new THREE.WebGLRenderer({canvas: canvas});
 renderer.setSize(800, 600);
 
-let rot = 0;
+// Initial setup
+var rot = 0;
 const DNAGroup = new THREE.Group();
-for (let x = -30; x <= 30; x += 2) {
+for (let x = 44; x > -44; x -= 2) {
     DNAGroup.add(makeDNA(x, rot, colours[Math.floor(Math.random() * 4)]));
     rot += Math.PI / 8;
 }
@@ -38,6 +41,16 @@ const tick = () => {
     renderer.render(scene, camera);
 
     DNAGroup.rotation.x -= 0.01;
+    DNAGroup.position.x += 0.03;
+
+    for (let i = 0; i < DNAGroup.children.length; i++) {
+        const child = DNAGroup.children[i];
+        if (child.position.x + DNAGroup.position.x > 44) {
+            DNAGroup.remove(child);
+            DNAGroup.add(makeDNA(-44 - DNAGroup.position.x, rot, colours[Math.floor(Math.random() * 4)]))
+            rot += Math.PI / 8;
+        }
+    }
 
     window.requestAnimationFrame(tick);
 }
