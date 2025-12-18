@@ -1,0 +1,9 @@
+canvas {
+    outline: 2px black solid;
+    border-radius: 2px;
+}
+
+.flexWrap {
+    display: flex;
+    justify-content: center;
+}
