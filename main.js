@@ -66,23 +66,60 @@ DNAGroup.traverse(function (group) {
 })
 scene.add(Pairs);
 
+const coneMaterial = new THREE.MeshStandardMaterial({color: 0xff5500});
+const coneGeo = new THREE.ConeGeometry(4, 4, 32);
+const helicase = new THREE.Mesh(coneGeo, coneMaterial);
+helicase.rotation.z = Math.PI / 2;
+helicase.position.x = 44;
+scene.add(helicase);
+
+const splitDNA = new THREE.Group();
+const splitDNAPair = new THREE.Group();
+scene.add(splitDNA);
+scene.add(splitDNAPair);
+
 const tick = () => {
     renderer.render(scene, camera);
 
-    DNAGroup.rotation.x -= 0.01;
-    DNAGroup.position.x += 0.03;
-    Pairs.rotation.x -= 0.01;
-    Pairs.position.x += 0.03;
+    DNAGroup.rotation.x -= Math.PI / 96;
+    Pairs.rotation.x -= Math.PI / 96;
+    DNAGroup.position.x += 0.04;
+    Pairs.position.x += 0.04;
+    splitDNA.position.x += 0.04;
+    splitDNAPair.position.x += 0.04;
 
-    for (let i = 0; i < DNAGroup.children.length; i++) {
-        const child = DNAGroup.children[i];
-        if (child.position.x + DNAGroup.position.x > 44) {
-            DNAGroup.remove(child);
-            const colour = colours[Math.floor(Math.random() * 4)];
-            DNAGroup.add(makeDNA(-44 - DNAGroup.position.x, rot, colour))
-            Pairs.add(makeDNA(-44 - Pairs.position.x, rot - Math.PI, basePairs[colour]))
-            rot += Math.PI / 8;
+    for (let i = 0; i < DNAGroup.children.length + splitDNA.children.length; i++) {
+        if (DNAGroup.children.length > i) {
+            const child = DNAGroup.children[i];
+            const pairChild = Pairs.children[i];
+            if (child.position.x + DNAGroup.position.x >= helicase.position.x - 3) {
+                splitDNA.add(child);
+                splitDNAPair.add(pairChild);
+                child.rotation.x = Math.PI / 16;
+                pairChild.rotation.x = Math.PI / 16 - Math.PI;
+            }
+        } else {
+            const child = splitDNA.children[i - DNAGroup.children.length]
+            const pairChild = splitDNAPair.children[i - DNAGroup.children.length]
+            if (child.position.x + DNAGroup.position.x > 44) {
+                splitDNA.remove(child);
+                splitDNAPair.remove(pairChild);
+                const colour = colours[Math.floor(Math.random() * 4)];
+                DNAGroup.add(makeDNA(-44 - splitDNA.position.x, rot, colour))
+                Pairs.add(makeDNA(-44 - Pairs.position.x, rot - Math.PI, basePairs[colour]))
+                rot += Math.PI / 8;
+            }
+            if (child.position.y < 20) {
+                child.position.y += 0.4;
+                pairChild.position.y -= 0.4;
+            }
         }
+    }
+
+    let target = -1 * Math.PI / 3;
+
+    if ((DNAGroup.rotation.x < target + 1/6 && DNAGroup.rotation.x > target - 1/6) || helicase.position.x < 44) {
+        helicase.position.x -= 0.1275;
     }
 
     window.requestAnimationFrame(tick);
@@ -96,7 +133,7 @@ function makeDNA(xPos, rot, colour) {
     const cylinder = new THREE.Mesh( geometry, material );
     cylinder.position.y = 2.5;
 
-    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 5, 0), new THREE.Vector3(1, 5, -0.96), new THREE.Vector3(2, 4.635, -1.92));
+    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 5, 0), new THREE.Vector3(-1, 5, 0.96), new THREE.Vector3(-2, 4.635, 1.92));
     const curveGeometry = new THREE.TubeGeometry(curve, 20, 0.5, 8, false);
     const curveMaterial = new THREE.LineBasicMaterial( { color: 0x555555 } );
     const tube = new THREE.Mesh(curveGeometry, curveMaterial);
