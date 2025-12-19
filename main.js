@@ -92,17 +92,17 @@ tick();
 function makeDNA(xPos, rot, colour) {
     const material = new THREE.MeshStandardMaterial( { color: colour } );
 
-    // Geometry
-    let geometry = new THREE.SphereGeometry( 1, 32, 32 );
-    const sphere = new THREE.Mesh( geometry, material );
-    sphere.position.y = 10;
-
-    geometry = new THREE.CylinderGeometry(0.5, 0.5, 10, 32);
+    let geometry = new THREE.CylinderGeometry(0.5, 0.5, 5, 32);
     const cylinder = new THREE.Mesh( geometry, material );
-    cylinder.position.y = 5;
+    cylinder.position.y = 2.5;
+
+    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 5, 0), new THREE.Vector3(1, 5, -0.96), new THREE.Vector3(2, 4.635, -1.92));
+    const curveGeometry = new THREE.TubeGeometry(curve, 20, 0.5, 8, false);
+    const curveMaterial = new THREE.LineBasicMaterial( { color: 0x555555 } );
+    const tube = new THREE.Mesh(curveGeometry, curveMaterial);
 
     const nucleotide = new THREE.Group();
-    nucleotide.add(sphere);
+    nucleotide.add(tube);
     nucleotide.add(cylinder);
 
     nucleotide.position.x = xPos;
