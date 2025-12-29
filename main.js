@@ -1,4 +1,7 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import * as THREE from 'three';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
 const colours = [
     0xff0000,
@@ -17,6 +20,10 @@ const basePairs = {
     0x0000ff: 0xffff00,
     0xffff00: 0x0000ff
 }
+
+var nucleotidePoints = [];
+
+var pairPoints = [];
 
 // Scene
 const scene = new THREE.Scene();
@@ -43,7 +50,7 @@ renderer.setSize(800, 600);
 var rot = 0;
 const DNAGroup = new THREE.Group();
 for (let x = 44; x > -44; x -= 2) {
-    DNAGroup.add(makeDNA(x, rot, colours[Math.floor(Math.random() * 4)]));
+    DNAGroup.add(makeDNA(x, rot, colours[Math.floor(Math.random() * 4)], false));
     rot += Math.PI / 8;
 }
 scene.add(DNAGroup);
@@ -60,7 +67,7 @@ DNAGroup.traverse(function (group) {
         }
         if (material) {
             const colour = '0x' + material.color.getHexString();
-            Pairs.add(makeDNA(group.position.x, group.rotation.x - Math.PI, basePairs[colour]));
+            Pairs.add(makeDNA(group.position.x, group.rotation.x - Math.PI, basePairs[colour], true));
         }
     }
 })
@@ -78,6 +85,16 @@ const splitDNAPair = new THREE.Group();
 scene.add(splitDNA);
 scene.add(splitDNAPair);
 
+const nucleotideLineGeometry = new LineGeometry();
+const pairLineGeometry = new LineGeometry();
+nucleotideLineGeometry.setFromPoints(nucleotidePoints)
+pairLineGeometry.setFromPoints(pairPoints);
+const material = new LineMaterial( { linewidth: 15, color: 0x555555 } );
+const line = new Line2( nucleotideLineGeometry, material );
+const pairLine = new Line2( pairLineGeometry, material );
+scene.add( line );
+scene.add( pairLine );
+
 const tick = () => {
     renderer.render(scene, camera);
 
@@ -87,6 +104,8 @@ const tick = () => {
     Pairs.position.x += 0.04;
     splitDNA.position.x += 0.04;
     splitDNAPair.position.x += 0.04;
+    nucleotidePoints = [];
+    pairPoints = [];
 
     for (let i = 0; i < DNAGroup.children.length + splitDNA.children.length; i++) {
         if (DNAGroup.children.length > i) {
@@ -98,6 +117,8 @@ const tick = () => {
                 child.rotation.x = Math.PI / 16;
                 pairChild.rotation.x = Math.PI / 16 - Math.PI;
             }
+            nucleotidePoints.push(child.children[0].getWorldPosition(new THREE.Vector3()))
+            pairPoints.push(pairChild.children[0].getWorldPosition(new THREE.Vector3()))
         } else {
             const child = splitDNA.children[i - DNAGroup.children.length]
             const pairChild = splitDNAPair.children[i - DNAGroup.children.length]
@@ -105,16 +126,22 @@ const tick = () => {
                 splitDNA.remove(child);
                 splitDNAPair.remove(pairChild);
                 const colour = colours[Math.floor(Math.random() * 4)];
-                DNAGroup.add(makeDNA(-44 - splitDNA.position.x, rot, colour))
-                Pairs.add(makeDNA(-44 - Pairs.position.x, rot - Math.PI, basePairs[colour]))
+                DNAGroup.add(makeDNA(-44 - splitDNA.position.x, rot, colour, false))
+                Pairs.add(makeDNA(-44 - Pairs.position.x, rot - Math.PI, basePairs[colour], true))
                 rot += Math.PI / 8;
             }
             if (child.position.y < 20) {
-                child.position.y += 0.4;
-                pairChild.position.y -= 0.4;
+                child.position.y += 0.2;
+                pairChild.position.y -= 0.2;
             }
+            pairPoints.push(pairChild.children[0].getWorldPosition(new THREE.Vector3()))
+            nucleotidePoints.push(child.children[0].getWorldPosition(new THREE.Vector3()))
         }
     }
+    nucleotidePoints.sort((a, b) => a.x - b.x)
+    pairPoints.sort((a, b) => a.x - b.x)
+    nucleotideLineGeometry.setFromPoints(nucleotidePoints)
+    pairLineGeometry.setFromPoints(pairPoints);
 
     let target = -1 * Math.PI / 3;
 
@@ -126,24 +153,30 @@ const tick = () => {
 }
 tick();
 
-function makeDNA(xPos, rot, colour) {
+function makeDNA(xPos, rot, colour, pair) {
     const material = new THREE.MeshStandardMaterial( { color: colour } );
 
     let geometry = new THREE.CylinderGeometry(0.5, 0.5, 5, 32);
     const cylinder = new THREE.Mesh( geometry, material );
     cylinder.position.y = 2.5;
 
-    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 5, 0), new THREE.Vector3(-1, 5, 0.96), new THREE.Vector3(-2, 4.635, 1.92));
-    const curveGeometry = new THREE.TubeGeometry(curve, 20, 0.5, 8, false);
-    const curveMaterial = new THREE.LineBasicMaterial( { color: 0x555555 } );
-    const tube = new THREE.Mesh(curveGeometry, curveMaterial);
+    const endPoint = new THREE.SphereGeometry(1);
+    const point = new THREE.Mesh(endPoint);
 
     const nucleotide = new THREE.Group();
-    nucleotide.add(tube);
+    nucleotide.add(point);
     nucleotide.add(cylinder);
+    point.visible = false;
 
     nucleotide.position.x = xPos;
-    nucleotide.rotation.x = rot
+    nucleotide.rotation.x = rot;
+    point.position.y += 5.5;
+    
+    if (pair) {
+        pairPoints.push(point.getWorldPosition(new THREE.Vector3()))
+    } else {
+        nucleotidePoints.push(point.getWorldPosition(new THREE.Vector3()))
+    }
 
     return nucleotide;
 }
