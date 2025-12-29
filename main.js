@@ -94,7 +94,6 @@ const line = new Line2( nucleotideLineGeometry, material );
 const pairLine = new Line2( pairLineGeometry, material );
 scene.add( line );
 scene.add( pairLine );
-
 const tick = () => {
     renderer.render(scene, camera);
 
@@ -145,8 +144,11 @@ const tick = () => {
 
     let target = -1 * Math.PI / 3;
 
-    if ((DNAGroup.rotation.x < target + 1/6 && DNAGroup.rotation.x > target - 1/6) || helicase.position.x < 44) {
+    if (((DNAGroup.rotation.x < target + 1/6 && DNAGroup.rotation.x > target - 1/6) || helicase.position.x < 44) && helicase.position.x > -30) {
         helicase.position.x -= 0.1275;
+    } else if (helicase.position.x <= -30) {
+        DNAGroup.rotation.x += Math.PI / 96 - 0.0078539816339745;
+        Pairs.rotation.x += Math.PI / 96 - 0.0078539816339745;
     }
 
     window.requestAnimationFrame(tick);
