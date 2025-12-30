@@ -94,6 +94,15 @@ const line = new Line2( nucleotideLineGeometry, material );
 const pairLine = new Line2( pairLineGeometry, material );
 scene.add( line );
 scene.add( pairLine );
+
+const topoisomeraseGeometry = new THREE.TorusGeometry(6, 1, 16, 100);
+const TIMaterial = new THREE.MeshStandardMaterial({color: 0x00ff00});
+const topoisomerase = new THREE.Mesh( topoisomeraseGeometry, TIMaterial );
+topoisomerase.rotation.y = Math.PI / 2;
+// topoisomerase.position.x = -36;
+topoisomerase.position.y = 50
+scene.add(topoisomerase);
+
 const tick = () => {
     renderer.render(scene, camera);
 
@@ -144,11 +153,19 @@ const tick = () => {
 
     let target = -1 * Math.PI / 3;
 
-    if (((DNAGroup.rotation.x < target + 1/6 && DNAGroup.rotation.x > target - 1/6) || helicase.position.x < 44) && helicase.position.x > -30) {
+    if (((DNAGroup.rotation.x < target + 1/6 && DNAGroup.rotation.x > target - 1/6) || helicase.position.x < 44) && helicase.position.x > -25) {
         helicase.position.x -= 0.1275;
-    } else if (helicase.position.x <= -30) {
+    } else if (helicase.position.x <= -25) {
         DNAGroup.rotation.x += Math.PI / 96 - 0.0078539816339745;
         Pairs.rotation.x += Math.PI / 96 - 0.0078539816339745;
+        if (topoisomerase.position.x > -36) {
+            let TIPos = topoisomerase.position.x;
+            topoisomerase.position.x -= Math.max((TIPos + 36) / 100, 0.01);
+        }
+        if (topoisomerase.position.y > 0) {
+            let TIPos = topoisomerase.position.y;
+            topoisomerase.position.y -= Math.max(TIPos / 100, 0.01);
+        }
     }
 
     window.requestAnimationFrame(tick);
