@@ -21,6 +21,8 @@ const basePairs = {
     0xffff00: 0x0000ff
 }
 
+const laggingPrimers = [];
+
 var nucleotidePoints = [];
 
 var pairPoints = [];
@@ -99,9 +101,19 @@ const topoisomeraseGeometry = new THREE.TorusGeometry(6, 1, 16, 100);
 const TIMaterial = new THREE.MeshStandardMaterial({color: 0x00ff00});
 const topoisomerase = new THREE.Mesh( topoisomeraseGeometry, TIMaterial );
 topoisomerase.rotation.y = Math.PI / 2;
-// topoisomerase.position.x = -36;
 topoisomerase.position.y = 50
+topoisomerase.position.z = 50;
 scene.add(topoisomerase);
+
+const primerBase = new THREE.Group();
+primerBase.add(makeNewDNA(0, 0xff00ff, true)[0]);
+primerBase.add(makeNewDNA(0, 0xff00ff, true)[1]);
+primerBase.add(makeNewDNA(2, 0xff00ff)[0]);
+let leadPrimer = primerBase.clone();
+leadPrimer.position.x = 42;
+leadPrimer.position.y = -15;
+let targetLead;
+scene.add(leadPrimer);
 
 const tick = () => {
     renderer.render(scene, camera);
@@ -158,13 +170,40 @@ const tick = () => {
     } else if (helicase.position.x <= -25) {
         DNAGroup.rotation.x += Math.PI / 96 - 0.0078539816339745;
         Pairs.rotation.x += Math.PI / 96 - 0.0078539816339745;
-        if (topoisomerase.position.x > -36) {
+        if (topoisomerase.position.x > -36.1) {
             let TIPos = topoisomerase.position.x;
-            topoisomerase.position.x -= Math.max((TIPos + 36) / 100, 0.01);
+            topoisomerase.position.x -= Math.max((TIPos + 36.1) / 100, 0.01);
         }
         if (topoisomerase.position.y > 0) {
             let TIPos = topoisomerase.position.y;
             topoisomerase.position.y -= Math.max(TIPos / 100, 0.01);
+        }
+        if (topoisomerase.position.z > 0) {
+            let TIPos = topoisomerase.position.z;
+            topoisomerase.position.z -= Math.max(TIPos / 100, 0.01);
+        }
+    }
+
+    if (helicase.position.x <= 10) {
+        if (!targetLead) {
+            targetLead = splitDNA.children.filter(obj => obj.getWorldPosition(new THREE.Vector3()).x < 10)[0];
+        }
+        if (leadPrimer.parent == scene) {
+            let speed = calcSpeed(leadPrimer.position.x, targetLead.getWorldPosition(new THREE.Vector3()).x, 15, 0.04);
+            if (speed[1]) {
+                leadPrimer.position.x += speed[0];
+            } else {
+                leadPrimer.position.x = targetLead.getWorldPosition(new THREE.Vector3()).x
+            }
+            let speedY = calcSpeed(leadPrimer.position.y, 15, 20, 0);
+            if (speedY[1]) {
+                leadPrimer.position.y += speedY[0];
+            } else {
+                leadPrimer.position.y = targetLead.getWorldPosition(new THREE.Vector3()).y
+            }
+            if (leadPrimer.position.x > 41) {
+                leadPrimer.removeFromParent();
+            }
         }
     }
 
@@ -198,4 +237,33 @@ function makeDNA(xPos, rot, colour, pair) {
     }
 
     return nucleotide;
+}
+
+function makeNewDNA(xPos, colour, top = false) {
+    const material = new THREE.MeshStandardMaterial( { color: colour } );
+    let topMesh;
+
+    let geometry = new THREE.CylinderGeometry(0.5, 0.5, 5, 32);
+    const cylinder = new THREE.Mesh( geometry, material );
+    cylinder.position.y = 2.5;
+
+    cylinder.position.x = xPos;
+
+    if (top) {
+        const topGeo = new THREE.CylinderGeometry(0.75, 0.75, 3, 32);
+        topMesh = new THREE.Mesh(topGeo, material);
+        topMesh.rotation.z = Math.PI / 2;
+        topMesh.position.x = xPos + 1;
+    }
+
+    return [cylinder, topMesh];
+}
+
+function calcSpeed(curPoint, nextPoint, speed, baseSpeed) {
+    let calculatedSpeed = (nextPoint - curPoint) / speed;
+    let newSpeed = Math.sign(calculatedSpeed) != Math.sign(baseSpeed) ? calculatedSpeed : baseSpeed;
+    if (Math.abs(newSpeed) < 0.003) {
+        newSpeed = nextPoint - curPoint;
+    }
+    return [newSpeed, Math.sign(calculatedSpeed) != Math.sign(baseSpeed) || Math.abs(newSpeed) < 0.003];
 }
