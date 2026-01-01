@@ -90,6 +90,13 @@ const splitDNAPair = new THREE.Group();
 scene.add(splitDNA);
 scene.add(splitDNAPair);
 
+const splitDNANew = new THREE.Group();
+const splitDNAPairNew = new THREE.Group();
+splitDNANew.position.y = 15
+splitDNAPairNew.position.y = -15
+scene.add(splitDNANew);
+scene.add(splitDNAPairNew);
+
 const nucleotideLineGeometry = new LineGeometry();
 const pairLineGeometry = new LineGeometry();
 nucleotideLineGeometry.setFromPoints(nucleotidePoints)
@@ -118,6 +125,10 @@ leadPrimer.position.y = -15;
 let targetLead;
 scene.add(leadPrimer);
 
+const leadTop = new THREE.Group();
+leadTop.position.y = 15
+scene.add(leadTop)
+
 const DNAPol3Geo = new THREE.LatheGeometry([
     new THREE.Vector2(3.5, 0),
     new THREE.Vector2(4.4, 1),
@@ -137,7 +148,7 @@ const DNAPol3Geo = new THREE.LatheGeometry([
 const DNAPol3Mat = new THREE.MeshStandardMaterial({color: 0x770077});
 const DNAPol3 = new THREE.Mesh(DNAPol3Geo, DNAPol3Mat);
 DNAPol3.rotation.z = Math.PI / 2
-DNAPol3.position.y = 20.2
+DNAPol3.position.y = 20.15
 DNAPol3.position.x = 60
 DNAPol3.scale.x = 1.9
 scene.add(DNAPol3)
@@ -151,6 +162,9 @@ const tick = () => {
     Pairs.position.x += 0.04;
     splitDNA.position.x += 0.04;
     splitDNAPair.position.x += 0.04;
+    splitDNANew.position.x += 0.04;
+    if (leadTop) leadTop.position.x += 0.04;
+    splitDNAPairNew.position.x += 0.04;
     nucleotidePoints = [];
     pairPoints = [];
 
@@ -183,8 +197,20 @@ const tick = () => {
             }
             pairPoints.push(pairChild.children[0].getWorldPosition(new THREE.Vector3()))
             nucleotidePoints.push(child.children[0].getWorldPosition(new THREE.Vector3()))
+
+            let xPos = child.getWorldPosition(new THREE.Vector3()).x
+            if (xPos >= DNAPol3.position.x - 8 && xPos < leadPrimer.position.x
+                && splitDNANew.children.filter((child) => nearTarget(child.getWorldPosition(new THREE.Vector3()).x, xPos)).length == 0) {
+                let colour = child.children[1].material.color.getHexString();
+                leadTop.children.forEach(child => child.removeFromParent())
+                leadTop.add(makeNewDNA(xPos - leadTop.position.x, 0x555555, true, true, false, splitDNANew.children.length + 1)[1])
+                leadTop.children[0].position.x += 1 * splitDNANew.children.length + 1
+                splitDNANew.add(makeNewDNA(xPos - splitDNANew.position.x, basePairs['0x' + colour])[0])
+                
+            }
         }
     }
+    
     nucleotidePoints.sort((a, b) => a.x - b.x)
     pairPoints.sort((a, b) => a.x - b.x)
     nucleotideLineGeometry.setFromPoints(nucleotidePoints)
@@ -217,14 +243,16 @@ const tick = () => {
         }
         if (leadPrimer.parent == scene) {
             let speed = calcSpeed(leadPrimer.position.x, targetLead.getWorldPosition(new THREE.Vector3()).x, 15, 0.04);
-            if (speed[1]) {
+            if (speed[1] && leadPrimer.position.x <= 42) {
                 leadPrimer.position.x += speed[0];
-            } else {
+            } else if (leadPrimer.position.x <= 42) {
                 leadPrimer.position.x = targetLead.getWorldPosition(new THREE.Vector3()).x
                 let speed = calcSpeed(DNAPol3.position.x, leadPrimer.position.x + 2, 15, 0.04);
                 if (speed[1]) {
                     DNAPol3.position.x += speed[0]
                 }
+            } else {
+                leadPrimer.position.x += 0.04
             }
             let speedY = calcSpeed(leadPrimer.position.y, 15, 20, 0);
             if (speedY[1]) {
@@ -232,27 +260,7 @@ const tick = () => {
             } else {
                 leadPrimer.position.y = targetLead.getWorldPosition(new THREE.Vector3()).y
             }
-            if (leadPrimer.position.x > 41) {
-                leadPrimer.removeFromParent();
-            }
         }
-    }
-    if (leadingNucleotides.length > 0 || leadPrimer.position.y == 15) {
-        leadingNucleotides.push(makeNewDNA(0, 0xff0000, leadingNucleotides.length == 0, true));
-        // scene.add(leadingNucleotides[leadingNucleotides.length - 1][0]);
-        if (leadingNucleotides.length == 1) scene.add(leadingNucleotides[leadingNucleotides.length - 1][1]);
-        leadingNucleotides.forEach(el => {
-            el[0].position.x += 0.04
-            if (el[1]) {
-                el[1].position.x += 0.02
-                // let height = el[1].geometry.parameters.height
-                // el[1].geometry = new THREE.CylinderGeometry(0.75, 0.75, height + 0.04)
-            }
-            if (el[0].position.x > 42) {
-                el[0].removeFromParent();
-                if (!el[1]) leadingNucleotides.shift()
-            }
-        })
     }
 
     window.requestAnimationFrame(tick);
@@ -287,7 +295,7 @@ function makeDNA(xPos, rot, colour, pair) {
     return nucleotide;
 }
 
-function makeNewDNA(xPos, colour, top = false, flip = false) {
+function makeNewDNA(xPos, colour, top = false, flip = false, reduceColour = true, height = 2) {
     const material = new THREE.MeshStandardMaterial( { color: colour } );
     let topMesh;
 
@@ -298,14 +306,21 @@ function makeNewDNA(xPos, colour, top = false, flip = false) {
     cylinder.position.x = xPos;
 
     if (top) {
-        const topGeo = new THREE.CylinderGeometry(0.75, 0.75, 3, 32);
-        const topMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color().setHex(colour).sub(new THREE.Color().setHex(0xdddddd))})
+        const topGeo = new THREE.CylinderGeometry(0.75, 0.75, height * 2 - 1, 32);
+        let trueColour;
+        if (reduceColour) {
+            trueColour = new THREE.Color().setHex(colour).sub(new THREE.Color().setHex(0xdddddd))
+        } else {
+            trueColour = new THREE.Color().setHex(colour)
+        }
+        const topMaterial = new THREE.MeshBasicMaterial({color: trueColour})
         topMesh = new THREE.Mesh(topGeo, topMaterial);
         topMesh.rotation.z = Math.PI / 2;
         topMesh.position.x = xPos + 1;
         if (flip) {
             topMesh.position.x -= 2
         }
+        topMesh.position.y = -0.75
     }
 
     return [cylinder, topMesh];
@@ -318,4 +333,8 @@ function calcSpeed(curPoint, nextPoint, speed, baseSpeed) {
         newSpeed = nextPoint - curPoint;
     }
     return [newSpeed, Math.sign(calculatedSpeed) != Math.sign(baseSpeed) || Math.abs(newSpeed) < 0.003];
+}
+
+function nearTarget(a, b, distance = 0.1) {
+    return (b - distance / 2) < a && (b + distance / 2) > a
 }
