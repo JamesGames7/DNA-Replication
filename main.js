@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LatheGeometry, Line2NodeMaterial, Vector2 } from 'three/webgpu';
 
 const colours = [
     0xff0000,
@@ -20,6 +21,8 @@ const basePairs = {
     0x0000ff: 0xffff00,
     0xffff00: 0x0000ff
 }
+
+const leadingNucleotides = [];
 
 const laggingPrimers = [];
 
@@ -115,6 +118,30 @@ leadPrimer.position.y = -15;
 let targetLead;
 scene.add(leadPrimer);
 
+const DNAPol3Geo = new THREE.LatheGeometry([
+    new THREE.Vector2(3.5, 0),
+    new THREE.Vector2(4.4, 1),
+    new THREE.Vector2(4.8, 2),
+    new THREE.Vector2(4.9, 3),
+    new THREE.Vector2(4.8, 4),
+    new THREE.Vector2(4.5, 5),
+    new THREE.Vector2(4.2, 6),
+    new THREE.Vector2(3.7, 7),
+    new THREE.Vector2(3.5, 8),
+    new THREE.Vector2(3.6, 9),
+    new THREE.Vector2(3.8, 10),
+    new THREE.Vector2(4.1, 11),
+    new THREE.Vector2(4.2, 12),
+    new THREE.Vector2(4, 13),
+]);
+const DNAPol3Mat = new THREE.MeshStandardMaterial({color: 0x770077});
+const DNAPol3 = new THREE.Mesh(DNAPol3Geo, DNAPol3Mat);
+DNAPol3.rotation.z = Math.PI / 2
+DNAPol3.position.y = 20.2
+DNAPol3.position.x = 60
+DNAPol3.scale.x = 1.9
+scene.add(DNAPol3)
+
 const tick = () => {
     renderer.render(scene, camera);
 
@@ -172,15 +199,15 @@ const tick = () => {
         Pairs.rotation.x += Math.PI / 96 - 0.0078539816339745;
         if (topoisomerase.position.x > -36.1) {
             let TIPos = topoisomerase.position.x;
-            topoisomerase.position.x -= Math.max((TIPos + 36.1) / 100, 0.01);
+            topoisomerase.position.x -= Math.max((TIPos + 36.1) / 50, 0.01);
         }
         if (topoisomerase.position.y > 0) {
             let TIPos = topoisomerase.position.y;
-            topoisomerase.position.y -= Math.max(TIPos / 100, 0.01);
+            topoisomerase.position.y -= Math.max(TIPos / 50, 0.01);
         }
         if (topoisomerase.position.z > 0) {
             let TIPos = topoisomerase.position.z;
-            topoisomerase.position.z -= Math.max(TIPos / 100, 0.01);
+            topoisomerase.position.z -= Math.max(TIPos / 50, 0.01);
         }
     }
 
@@ -194,6 +221,10 @@ const tick = () => {
                 leadPrimer.position.x += speed[0];
             } else {
                 leadPrimer.position.x = targetLead.getWorldPosition(new THREE.Vector3()).x
+                let speed = calcSpeed(DNAPol3.position.x, leadPrimer.position.x + 2, 15, 0.04);
+                if (speed[1]) {
+                    DNAPol3.position.x += speed[0]
+                }
             }
             let speedY = calcSpeed(leadPrimer.position.y, 15, 20, 0);
             if (speedY[1]) {
@@ -205,6 +236,23 @@ const tick = () => {
                 leadPrimer.removeFromParent();
             }
         }
+    }
+    if (leadingNucleotides.length > 0 || leadPrimer.position.y == 15) {
+        leadingNucleotides.push(makeNewDNA(0, 0xff0000, leadingNucleotides.length == 0, true));
+        // scene.add(leadingNucleotides[leadingNucleotides.length - 1][0]);
+        if (leadingNucleotides.length == 1) scene.add(leadingNucleotides[leadingNucleotides.length - 1][1]);
+        leadingNucleotides.forEach(el => {
+            el[0].position.x += 0.04
+            if (el[1]) {
+                el[1].position.x += 0.02
+                // let height = el[1].geometry.parameters.height
+                // el[1].geometry = new THREE.CylinderGeometry(0.75, 0.75, height + 0.04)
+            }
+            if (el[0].position.x > 42) {
+                el[0].removeFromParent();
+                if (!el[1]) leadingNucleotides.shift()
+            }
+        })
     }
 
     window.requestAnimationFrame(tick);
@@ -239,7 +287,7 @@ function makeDNA(xPos, rot, colour, pair) {
     return nucleotide;
 }
 
-function makeNewDNA(xPos, colour, top = false) {
+function makeNewDNA(xPos, colour, top = false, flip = false) {
     const material = new THREE.MeshStandardMaterial( { color: colour } );
     let topMesh;
 
@@ -251,9 +299,13 @@ function makeNewDNA(xPos, colour, top = false) {
 
     if (top) {
         const topGeo = new THREE.CylinderGeometry(0.75, 0.75, 3, 32);
-        topMesh = new THREE.Mesh(topGeo, material);
+        const topMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color().setHex(colour).sub(new THREE.Color().setHex(0xdddddd))})
+        topMesh = new THREE.Mesh(topGeo, topMaterial);
         topMesh.rotation.z = Math.PI / 2;
         topMesh.position.x = xPos + 1;
+        if (flip) {
+            topMesh.position.x -= 2
+        }
     }
 
     return [cylinder, topMesh];
