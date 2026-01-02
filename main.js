@@ -91,11 +91,11 @@ scene.add(splitDNA);
 scene.add(splitDNAPair);
 
 const splitDNANew = new THREE.Group();
-const splitDNAPairNew = new THREE.Group();
+const laggingPairs = new THREE.Group();
 splitDNANew.position.y = 15
-splitDNAPairNew.position.y = -15
+laggingPairs.position.y = -20
 scene.add(splitDNANew);
-scene.add(splitDNAPairNew);
+scene.add(laggingPairs)
 
 const nucleotideLineGeometry = new LineGeometry();
 const pairLineGeometry = new LineGeometry();
@@ -167,7 +167,7 @@ const tick = () => {
     splitDNAPair.position.x += 0.04;
     splitDNANew.position.x += 0.04;
     if (leadTop) leadTop.position.x += 0.04;
-    splitDNAPairNew.position.x += 0.04;
+    laggingPairs.position.x += 0.04;
     nucleotidePoints = [];
     pairPoints = [];
 
@@ -334,9 +334,18 @@ const tick = () => {
             }
 
             let ahead = laggingPrimers.filter(primer => primer.position.x > pol.position.x + 8)
-            if ((ahead[0] && ahead.sort((a, b) => a.position.x - b.position.x)[0].position.x - pol.position.x < 9) || pol.position.x > 42) {
+            if ((ahead[0] && ahead.sort((a, b) => a.position.x - b.position.x)[0].position.x - pol.position.x < 11) || pol.position.x > 42) {
                 leavingDNAPol3.push(pol)
                 laggingDNAPol3s[laggingDNAPol3s.indexOf(pol)] = "toRemove";
+            }
+
+            // Adding base pairs
+            let targetBase = splitDNAPair.children.filter(child => nearTarget(getPos(child).x, pol.position.x + 8, 0.05)).sort((a, b) => getPos(a).x - getPos(b).x)[0];
+            
+            if (targetBase) {
+                let colour = targetBase.children[1].material.color.getHexString();
+                let temp = makeNewDNA(targetBase.position.x, basePairs['0x' + colour])[0];
+                laggingPairs.add(temp)
             }
         }
     })
