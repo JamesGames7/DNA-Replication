@@ -152,6 +152,9 @@ DNAPol3.position.y = 20.15
 DNAPol3.position.x = 60
 DNAPol3.scale.x = 1.9
 scene.add(DNAPol3)
+let illusion = new THREE.Group();
+illusion.position.y = -50;
+scene.add(illusion);
 
 const tick = () => {
     renderer.render(scene, camera);
@@ -205,11 +208,25 @@ const tick = () => {
                 leadTop.children.forEach(child => child.removeFromParent())
                 leadTop.add(makeNewDNA(xPos - leadTop.position.x, 0x555555, true, true, false, splitDNANew.children.length + 1)[1])
                 leadTop.children[0].position.x += 1 * splitDNANew.children.length + 1
+
                 splitDNANew.add(makeNewDNA(xPos - splitDNANew.position.x, basePairs['0x' + colour])[0])
-                
+                let temp = makeNewDNA(Math.random() * 100 - 46, basePairs['0x' + colour])[0]
+                temp.rotation.z = Math.random() * Math.PI - Math.PI / 2
+                illusion.add(temp)
             }
         }
     }
+
+    illusion.children.forEach(child => {
+        if (!nearTarget(child.position.x, 10, 0.3)) {
+            child.position.x += (10 - child.position.x) / 10
+            child.position.y += (17 - getPos(child).y) / 6
+
+            child.rotation.z += (-1 * child.rotation.z) / 5
+        } else {
+            child.removeFromParent();
+        }
+    })
     
     nucleotidePoints.sort((a, b) => a.x - b.x)
     pairPoints.sort((a, b) => a.x - b.x)
@@ -337,4 +354,8 @@ function calcSpeed(curPoint, nextPoint, speed, baseSpeed) {
 
 function nearTarget(a, b, distance = 0.1) {
     return (b - distance / 2) < a && (b + distance / 2) > a
+}
+
+function getPos(o) {
+    return o.getWorldPosition(new THREE.Vector3());
 }
