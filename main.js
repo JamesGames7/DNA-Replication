@@ -279,6 +279,56 @@ const tick = () => {
         }
     }
 
+    // DNA Pol 3 creation 
+    if (laggingDNAPol3s.length < laggingPrimers.length
+        && laggingPrimers.sort((a, b) => getPos(a).x - getPos(b).x)[0].children[0].position.y < 3) {
+        let group = new THREE.Group();
+        laggingDNAPol3s.push(group)
+
+        let temp = DNAPol3.clone();
+        group.add(temp)
+
+        group.position.x = getPos(laggingPrimers.sort((a, b) => getPos(a).x - getPos(b).x)[0]).x - 8;
+        group.position.y = -20.15
+        group.rotation.z = Math.PI
+
+        temp.position.x = Math.random() * 50;
+        temp.position.y = 50;
+
+        scene.add(group)
+    }
+
+    // Moving DNA Pol 3
+    laggingDNAPol3s.forEach(pol => {
+        if (typeof pol != "string") {
+            pol.position.x += 0.08;
+
+            let truePos = pol.children[0];
+            if (!nearTarget(0, truePos.position.x)) {
+                let speedX = calcSpeed(truePos.position.x, 0, 10, 0);
+                if (speedX[1]) {
+                    truePos.position.x += speedX[0];
+                }
+            } else {
+                truePos.position.x = 0;
+            }
+            if (!nearTarget(0, truePos.position.y)) {
+                let speedY = calcSpeed(truePos.position.y, 0, 15, 0);
+                if (speedY[1]) {
+                    truePos.position.y += speedY[0];
+                }
+            } else {
+                truePos.position.y = 0;
+            }
+
+            let ahead = laggingPrimers.filter(primer => primer.position.x > pol.position.x + 8)
+            if ((ahead[0] && ahead.sort((a, b) => a.position.x - b.position.x)[0].position.x - pol.position.x < 9) || pol.position.x > 42) {
+                pol.removeFromParent()
+                laggingDNAPol3s[laggingDNAPol3s.indexOf(pol)] = "toRemove";
+            }
+        }
+    })
+
     // Lagging primer creation
     if (helicase.position.x <= -25
         && (laggingPrimers.length == 0
@@ -327,6 +377,7 @@ const tick = () => {
         if (primer.position.x > 80) {
             primer.removeFromParent();
             laggingPrimers = laggingPrimers.filter(item => item != primer);
+            laggingDNAPol3s.splice(laggingDNAPol3s.indexOf("toRemove"), 1)
         }
 
         i++;
