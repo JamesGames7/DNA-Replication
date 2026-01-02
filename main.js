@@ -22,9 +22,8 @@ const basePairs = {
     0xffff00: 0x0000ff
 }
 
-const leadingNucleotides = [];
-
-const laggingPrimers = [];
+var laggingPrimers = [];
+var laggingDNAPol3s = [];
 
 var nucleotidePoints = [];
 
@@ -138,11 +137,11 @@ const DNAPol3Geo = new THREE.LatheGeometry([
     new THREE.Vector2(4.5, 5),
     new THREE.Vector2(4.2, 6),
     new THREE.Vector2(3.7, 7),
-    new THREE.Vector2(3.5, 8),
-    new THREE.Vector2(3.6, 9),
-    new THREE.Vector2(3.8, 10),
-    new THREE.Vector2(4.1, 11),
-    new THREE.Vector2(4.2, 12),
+    new THREE.Vector2(3.6, 8),
+    new THREE.Vector2(3.7, 9),
+    new THREE.Vector2(3.9, 10),
+    new THREE.Vector2(4.2, 11),
+    new THREE.Vector2(4.3, 12),
     new THREE.Vector2(4, 13),
 ]);
 const DNAPol3Mat = new THREE.MeshStandardMaterial({color: 0x770077});
@@ -279,6 +278,59 @@ const tick = () => {
             }
         }
     }
+
+    // Lagging primer creation
+    if (helicase.position.x <= -25
+        && (laggingPrimers.length == 0
+        || (getPos(laggingPrimers.sort((a, b) => getPos(a).x - getPos(b).x)[0]).x >= -6
+            && Math.floor(Math.random() * 150) == 0))) {
+        let group = new THREE.Group();
+        let temp = primerBase.clone()
+        laggingPrimers.push(group);
+
+        temp.rotation.z = Math.PI
+
+        let attachBase = splitDNAPair.children.filter(child => getPos(child).y <= -20).sort((a, b) => getPos(a).x - getPos(b).x)[0];
+        group.position.x = getPos(attachBase).x;
+        group.position.y = -15;
+
+        temp.position.x = Math.random() * 100 - 50;
+        temp.position.y = 30;
+
+        scene.add(group)
+        group.add(temp)
+    }
+
+    let i = 0;
+    // Movement of lagging primer after creation and deletion
+    laggingPrimers.sort((a, b) => getPos(a).x - getPos(b).x).forEach(primer => {
+        primer.position.x += 0.04;
+
+        let truePos = primer.children[0];
+        if (!nearTarget(0, truePos.position.x)) {
+            let speedX = calcSpeed(truePos.position.x, 0, 10, 0);
+            if (speedX[1]) {
+                truePos.position.x += speedX[0];
+            }
+        } else {
+            truePos.position.x = 0;
+        }
+        if (!nearTarget(0, truePos.position.y)) {
+            let speedY = calcSpeed(truePos.position.y, 0, 15, 0);
+            if (speedY[1]) {
+                truePos.position.y += speedY[0];
+            }
+        } else {
+            truePos.position.y = 0;
+        }
+
+        if (primer.position.x > 80) {
+            primer.removeFromParent();
+            laggingPrimers = laggingPrimers.filter(item => item != primer);
+        }
+
+        i++;
+    })
 
     window.requestAnimationFrame(tick);
 }
