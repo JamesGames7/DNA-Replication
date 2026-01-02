@@ -24,6 +24,7 @@ const basePairs = {
 
 var laggingPrimers = [];
 var laggingDNAPol3s = [];
+var leavingDNAPol3 = [];
 
 var nucleotidePoints = [];
 
@@ -298,6 +299,17 @@ const tick = () => {
         scene.add(group)
     }
 
+    // Leaving DNA Pol 3
+    leavingDNAPol3.forEach(pol => {
+        pol.position.x += Math.max(((pol.position.y + 20) / 30) * -1, 0.08);
+        pol.position.y += (pol.position.y + 20) / 15
+
+        if (pol.position.y <= -50) {
+            pol.removeFromParent();
+            leavingDNAPol3.splice(leavingDNAPol3.indexOf(pol), 1)
+        }
+    })
+
     // Moving DNA Pol 3
     laggingDNAPol3s.forEach(pol => {
         if (typeof pol != "string") {
@@ -323,7 +335,7 @@ const tick = () => {
 
             let ahead = laggingPrimers.filter(primer => primer.position.x > pol.position.x + 8)
             if ((ahead[0] && ahead.sort((a, b) => a.position.x - b.position.x)[0].position.x - pol.position.x < 9) || pol.position.x > 42) {
-                pol.removeFromParent()
+                leavingDNAPol3.push(pol)
                 laggingDNAPol3s[laggingDNAPol3s.indexOf(pol)] = "toRemove";
             }
         }
