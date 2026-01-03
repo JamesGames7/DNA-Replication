@@ -30,6 +30,8 @@ laggingTops.position.y = -13.5;
 
 let laggingDNAPol1s = [];
 
+let ligaseArr = new THREE.Group();
+
 let nucleotidePoints = [];
 
 let pairPoints = [];
@@ -141,7 +143,7 @@ const DNAPol3Geo = new THREE.LatheGeometry([
     new THREE.Vector2(4.9, 3),
     new THREE.Vector2(4.8, 4),
     new THREE.Vector2(4.5, 5),
-    new THREE.Vector2(4.2, 6),
+    new THREE.Vector2(4.1, 6),
     new THREE.Vector2(3.7, 7),
     new THREE.Vector2(3.6, 8),
     new THREE.Vector2(3.7, 9),
@@ -180,6 +182,14 @@ const DNAPol1Mat = new THREE.MeshStandardMaterial({color: 0x7c71ad});
 const DNAPol1 = new THREE.Mesh(DNAPol1Geo, DNAPol1Mat);
 DNAPol1.rotation.z = Math.PI / 2;
 
+const ligaseGeo = new THREE.SphereGeometry(2)
+const ligaseMat = new THREE.MeshStandardMaterial({color: 0xbfa55c});
+const ligase = new THREE.Mesh(ligaseGeo, ligaseMat);
+ligase.rotation.z = Math.PI / 2;
+ligase.scale.y = 2
+ligase.position.z = 5
+scene.add(ligaseArr)
+
 let illusion = new THREE.Group();
 illusion.position.y = -50;
 scene.add(illusion);
@@ -197,6 +207,7 @@ const tick = () => {
     if (leadTop) leadTop.position.x += 0.04;
     laggingTops.position.x += 0.04;
     laggingPairs.position.x += 0.04;
+    ligaseArr.position.x += 0.04;
     nucleotidePoints = [];
     pairPoints = [];
 
@@ -341,7 +352,6 @@ const tick = () => {
 
     let j = 0;
     // Moving DNA Pol 3
-    // REVIEW may need to sort (remember strings)
     laggingDNAPol3s.forEach(pol => {
         if (typeof pol != "string") {
             pol.position.x += 0.08;
@@ -507,14 +517,47 @@ const tick = () => {
                                 }
                                 if (nearTarget(pair.position.y, 2.5) && pol.position.y > -50) {
                                     pol.position.y += pol.position.y / 60
-                                } else if (pol.position.y < -50) {
-                                    console.log("here");
+                                } else if (pol.position.y < -50 && pol.position.y != -100) {
+                                    let group = new THREE.Group();
+                                    ligaseArr.add(group);
+                                    group.position.y = -14.25;
+                                    group.position.x = pol.position.x - ligaseArr.position.x
+
+                                    let ligaseClone = ligase.clone()
+
+                                    ligaseClone.position.y = -50;
+                                    ligaseClone.position.x = Math.random() * 10
+                                    group.add(ligaseClone)
+                                    pol.position.y = -100
                                 }
                             }
                             firstTime = false;
                         })
                     }
                 }
+            }
+        }
+    })
+
+    // Movement of ligase
+    ligaseArr.children.forEach(child => {
+        let lMove = child.children[0]
+        if (lMove) {
+            if (child.position.z == 0) {
+                lMove.position.x -= lMove.position.x / 10
+                lMove.position.y -= lMove.position.y / 10
+            } else {
+                lMove.position.x += (lMove.position.x + 0.1) / 10
+                lMove.position.y += (lMove.position.y + 0.1) / 10
+                if (lMove.position.y > 50) {
+                    lMove.removeFromParent()
+                }
+            }
+
+            if (child.position.z == 0 && nearTarget(lMove.position.y, 0)) {
+                laggingTops.add(makeNewDNA(getPos(child).x - laggingTops.position.x, 0x555555, true, false, false, 4.1)[1]);
+
+                child.position.z = 0.1
             }
         }
     })
