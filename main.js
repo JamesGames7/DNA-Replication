@@ -22,13 +22,15 @@ const basePairs = {
     0xffff00: 0x0000ff
 }
 
-var laggingPrimers = [];
-var laggingDNAPol3s = [];
-var leavingDNAPol3 = [];
+let laggingPrimers = [];
+let laggingDNAPol3s = [];
+let leavingDNAPol3 = [];
+const laggingTops = new THREE.Group();
+laggingTops.position.y = -13.5;
 
-var nucleotidePoints = [];
+let nucleotidePoints = [];
 
-var pairPoints = [];
+let pairPoints = [];
 
 // Scene
 const scene = new THREE.Scene();
@@ -52,7 +54,7 @@ const renderer = new THREE.WebGLRenderer({canvas: canvas});
 renderer.setSize(800, 600);
 
 // Initial setup
-var rot = 0;
+let rot = 0;
 const DNAGroup = new THREE.Group();
 for (let x = 44; x > -44; x -= 2) {
     DNAGroup.add(makeDNA(x, rot, colours[Math.floor(Math.random() * 4)], false));
@@ -124,6 +126,7 @@ leadPrimer.position.x = 42;
 leadPrimer.position.y = -15;
 let targetLead;
 scene.add(leadPrimer);
+scene.add(laggingTops)
 
 const leadTop = new THREE.Group();
 leadTop.position.y = 15
@@ -167,6 +170,7 @@ const tick = () => {
     splitDNAPair.position.x += 0.04;
     splitDNANew.position.x += 0.04;
     if (leadTop) leadTop.position.x += 0.04;
+    laggingTops.position.x += 0.04;
     laggingPairs.position.x += 0.04;
     nucleotidePoints = [];
     pairPoints = [];
@@ -310,7 +314,9 @@ const tick = () => {
         }
     })
 
+    let j = 0;
     // Moving DNA Pol 3
+    // REVIEW may need to sort (remember strings)
     laggingDNAPol3s.forEach(pol => {
         if (typeof pol != "string") {
             pol.position.x += 0.08;
@@ -336,17 +342,29 @@ const tick = () => {
             let ahead = laggingPrimers.filter(primer => primer.position.x > pol.position.x + 8)
             if ((ahead[0] && ahead.sort((a, b) => a.position.x - b.position.x)[0].position.x - pol.position.x < 11) || pol.position.x > 42) {
                 leavingDNAPol3.push(pol)
-                laggingDNAPol3s[laggingDNAPol3s.indexOf(pol)] = "toRemove";
+                laggingDNAPol3s[laggingDNAPol3s.lastIndexOf(pol)] = "toRemove";
             }
 
             // Adding base pairs
             let targetBase = splitDNAPair.children.filter(child => nearTarget(getPos(child).x, pol.position.x + 8, 0.05)).sort((a, b) => getPos(a).x - getPos(b).x)[0];
-            
             if (targetBase) {
                 let colour = targetBase.children[1].material.color.getHexString();
                 let temp = makeNewDNA(targetBase.position.x, basePairs['0x' + colour])[0];
                 laggingPairs.add(temp)
+                let topPos = getPos(targetBase).x - laggingTops.position.x
+                if (!(ahead[0] && nearTarget(ahead[0].position.x - 4, getPos(targetBase).x))) {
+                    laggingTops.add(makeNewDNA(topPos, 0x555555, true, false, false, 2)[1])
+                }
             }
+        }
+        j++;
+    })
+
+    // TODO use opacity to hide - if opacity is full keep it full or if topo is on correct level
+    // Top of lagging pairs
+    laggingTops.children.forEach(top => {
+        if (getPos(top).x > 42) {
+            laggingTops.remove(top)
         }
     })
 
