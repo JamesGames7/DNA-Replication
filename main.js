@@ -28,6 +28,8 @@ let leavingDNAPol3 = [];
 const laggingTops = new THREE.Group();
 laggingTops.position.y = -13.5;
 
+let laggingDNAPol1s = [];
+
 let nucleotidePoints = [];
 
 let pairPoints = [];
@@ -155,6 +157,29 @@ DNAPol3.position.y = 20.15
 DNAPol3.position.x = 60
 DNAPol3.scale.x = 1.9
 scene.add(DNAPol3)
+DNAPol3.position.z = 30
+
+const DNAPol1Geo = new THREE.LatheGeometry([
+    new Vector2(6.5, -3.5),
+    new Vector2(7.3, -3),
+    new Vector2(7.9, -2.5),
+    new Vector2(8.2, -2),
+    new Vector2(8.3, -1.5),
+    new Vector2(8.2, -1),
+    new Vector2(7.9, -0.5),
+    new Vector2(7.3, 0),
+    new Vector2(7.9, 0.5),
+    new Vector2(8.2, 1),
+    new Vector2(8.3, 1.5),
+    new Vector2(8.2, 2),
+    new Vector2(7.9, 2.5),
+    new Vector2(7.3, 3),
+    new Vector2(6.5, 3.5),
+]);
+const DNAPol1Mat = new THREE.MeshStandardMaterial({color: 0x7c71ad});
+const DNAPol1 = new THREE.Mesh(DNAPol1Geo, DNAPol1Mat);
+DNAPol1.rotation.z = Math.PI / 2;
+
 let illusion = new THREE.Group();
 illusion.position.y = -50;
 scene.add(illusion);
@@ -368,7 +393,7 @@ const tick = () => {
         }
     })
 
-    // Lagging primer creation
+    // Lagging primer creation & Pol 1
     if (helicase.position.x <= -25
         && (laggingPrimers.length == 0
         || (getPos(laggingPrimers.sort((a, b) => getPos(a).x - getPos(b).x)[0]).x >= -6
@@ -388,6 +413,20 @@ const tick = () => {
 
         scene.add(group)
         group.add(temp)
+
+        // Creation of Pol 1
+        let tempPol1 = new THREE.Group()
+        tempPol1.position.y = -20
+
+        let tempChild = DNAPol1.clone()
+        laggingDNAPol1s.push(tempPol1);
+        tempChild.position.x = Math.random() * 50
+        tempChild.position.y = 60
+
+        tempPol1.position.x = group.position.x - 1;
+        
+        tempPol1.add(tempChild)
+        scene.add(tempPol1)
     }
 
     let i = 0;
@@ -420,6 +459,64 @@ const tick = () => {
         }
 
         i++;
+    })
+
+    // Movement of DNAPol1
+    laggingDNAPol1s.forEach(pol => {
+        pol.position.x += 0.04;
+        // console.log(pol.children);
+
+        if (pol.position.x > -6 && pol.children[0].position.x > 0) {
+            pol.children[0].position.x -= pol.children[0].position.x < 0.1 ? pol.children[0].position.x : pol.children[0].position.x / 10
+        }
+        if (pol.children[0].position.y > 0 && pol.position.x > -6) {
+            pol.children[0].position.y -= pol.children[0].position.y < 0.1 ? pol.children[0].position.y : pol.children[0].position.y / 15
+        }
+
+        if (pol.children[0].position.y <= 0) {
+            let targetPrimer = laggingPrimers.filter(primer => nearTarget(primer.position.x, pol.position.x, 3))[0]
+            
+            if (targetPrimer) {
+                let targetAn = targetPrimer.children[0];
+                targetAn.position.y += (targetAn.position.y + 1) / 8
+                targetAn.position.x += (targetAn.position.y + 1) / 9
+
+                if (targetAn.position.y > 30) {
+                    let targetChildren = splitDNAPair.children.filter(child => nearTarget(pol.position.x, getPos(child).x, 4)).sort((a, b) => getPos(a).x - getPos(b).x)
+
+                    if (laggingPairs.children.filter(child => nearTarget(getPos(child).x, pol.position.x, 4)).length == 0) {
+                        let newDNA = makeNewDNA(getPos(targetChildren[0]).x - laggingPairs.position.x, basePairs['0x' + targetChildren[0].children[1].material.color.getHexString()])[0]
+                        newDNA.position.y += 50
+                        newDNA.rotation.z = Math.random() * Math.PI - Math.PI / 2
+                        laggingPairs.add(newDNA)
+                        newDNA = makeNewDNA(getPos(targetChildren[1]).x - laggingPairs.position.x, basePairs['0x' + targetChildren[1].children[1].material.color.getHexString()])[0]
+                        newDNA.position.y += 50
+                        newDNA.rotation.z = Math.random() * Math.PI - Math.PI / 2
+                        laggingPairs.add(newDNA)
+                    } else {
+                        let firstTime = true;
+                        laggingPairs.children.filter(child => nearTarget(getPos(child).x, pol.position.x, 4)).forEach(pair => {
+                            pair.position.y -= (pair.position.y - 2.5) / 10
+                            pair.rotation.z -= pair.rotation.z / 10
+
+                            if (firstTime) {
+                                if (nearTarget(pair.position.y, 2.5) && pol.position.y == -20) {
+                                    let newDNA = makeNewDNA(pol.position.x - laggingTops.position.x, 0x555555, true, true, false, 2)[1]
+                                    newDNA.position.x += 1 - 0.04
+                                    laggingTops.add(newDNA)
+                                }
+                                if (nearTarget(pair.position.y, 2.5) && pol.position.y > -50) {
+                                    pol.position.y += pol.position.y / 60
+                                } else if (pol.position.y < -50) {
+                                    console.log("here");
+                                }
+                            }
+                            firstTime = false;
+                        })
+                    }
+                }
+            }
+        }
     })
 
     window.requestAnimationFrame(tick);
