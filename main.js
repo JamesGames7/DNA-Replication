@@ -388,16 +388,22 @@ const tick = () => {
                 laggingPairs.add(temp)
                 let topPos = getPos(targetBase).x - laggingTops.position.x
                 if (!(ahead[0] && nearTarget(ahead[0].position.x - 4, getPos(targetBase).x))) {
-                    laggingTops.add(makeNewDNA(topPos, 0x555555, true, false, false, 2)[1])
+                    laggingTops.add(makeNewDNA(topPos, 0x555555, true, false, false, 2, true)[1])
                 }
             }
         }
         j++;
     })
 
-    // TODO use opacity to hide - if opacity is full keep it full or if topo is on correct level
     // Top of lagging pairs
     laggingTops.children.forEach(top => {
+        if (top.material.opacity == 0) {
+            let arr = laggingDNAPol3s.filter(pol => typeof pol != "string" && pol.position.x + 8 > getPos(top).x && pol.position.x + 8 - getPos(top).x < 10).sort((a, b) => getPos(a).x - getPos(b).x)
+            if (arr[0] && nearTarget(arr[0].children[0].position.y, 0)) {
+                top.material.opacity = 1
+            }
+        }
+        
         if (getPos(top).x > 42) {
             laggingTops.remove(top)
         }
@@ -526,7 +532,7 @@ const tick = () => {
                                     let ligaseClone = ligase.clone()
 
                                     ligaseClone.position.y = -50;
-                                    ligaseClone.position.x = Math.random() * 10
+                                    ligaseClone.position.x = Math.random() * 100 - 50
                                     group.add(ligaseClone)
                                     pol.position.y = -100
                                 }
@@ -555,7 +561,8 @@ const tick = () => {
             }
 
             if (child.position.z == 0 && nearTarget(lMove.position.y, 0)) {
-                laggingTops.add(makeNewDNA(getPos(child).x - laggingTops.position.x, 0x555555, true, false, false, 4.1)[1]);
+                laggingTops.add(makeNewDNA(getPos(child).x - laggingTops.position.x + 1, 0x555555, true, false, false, 2)[1]);
+                laggingTops.add(makeNewDNA(getPos(child).x - laggingTops.position.x - 2.1, 0x555555, true, false, false, 2)[1]);
 
                 child.position.z = 0.1
             }
@@ -594,7 +601,7 @@ function makeDNA(xPos, rot, colour, pair) {
     return nucleotide;
 }
 
-function makeNewDNA(xPos, colour, top = false, flip = false, reduceColour = true, height = 2) {
+function makeNewDNA(xPos, colour, top = false, flip = false, reduceColour = true, height = 2, opaque = false) {
     const material = new THREE.MeshStandardMaterial( { color: colour } );
     let topMesh;
 
@@ -612,7 +619,7 @@ function makeNewDNA(xPos, colour, top = false, flip = false, reduceColour = true
         } else {
             trueColour = new THREE.Color().setHex(colour)
         }
-        const topMaterial = new THREE.MeshBasicMaterial({color: trueColour})
+        const topMaterial = new THREE.MeshBasicMaterial({color: trueColour, transparent: true, opacity: opaque ? 0 : 1})
         topMesh = new THREE.Mesh(topGeo, topMaterial);
         topMesh.rotation.z = Math.PI / 2;
         topMesh.position.x = xPos + 1;
