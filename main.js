@@ -384,8 +384,14 @@ const tick = () => {
             let targetBase = splitDNAPair.children.filter(child => nearTarget(getPos(child).x, pol.position.x + 8, 0.05)).sort((a, b) => getPos(a).x - getPos(b).x)[0];
             if (targetBase) {
                 let colour = targetBase.children[1].material.color.getHexString();
-                let temp = makeNewDNA(targetBase.position.x, basePairs['0x' + colour])[0];
-                laggingPairs.add(temp)
+                let group = new THREE.Group();
+                let temp = makeNewDNA(0, basePairs['0x' + colour])[0];
+                temp.position.y += 50
+                temp.position.x += Math.random() * 100 - 50
+                temp.rotation.z = Math.random() * Math.PI - Math.PI / 2
+                group.position.x = targetBase.position.x
+                group.add(temp)
+                laggingPairs.add(group)
                 let topPos = getPos(targetBase).x - laggingTops.position.x
                 if (!(ahead[0] && nearTarget(ahead[0].position.x - 4, getPos(targetBase).x))) {
                     laggingTops.add(makeNewDNA(topPos, 0x555555, true, false, false, 2, true)[1])
@@ -393,6 +399,13 @@ const tick = () => {
             }
         }
         j++;
+    })
+
+    // Movement of lagging pairs
+    laggingPairs.children.forEach(pair => {
+        if (pair.children[0]) pair.children[0].position.y -= (pair.children[0].position.y - 2.5) / 10
+        if (pair.children[0]) pair.children[0].position.x -= pair.children[0].position.x / 10
+        if (pair.children[0]) pair.children[0].rotation.z -= pair.children[0].rotation.z / 10
     })
 
     // Top of lagging pairs
