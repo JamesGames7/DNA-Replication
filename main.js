@@ -47,6 +47,9 @@ let pairPoints = [];
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xefefff);
 
+const flyingBases = new THREE.Group();
+scene.add(flyingBases);
+
 // Light
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(0, 0, 10);
@@ -199,7 +202,7 @@ scene.add(ligaseArr)
 
 let illusion = new THREE.Group();
 illusion.position.y = -50;
-scene.add(illusion);
+flyingBases.add(illusion);
 
 let curDNALeading = '';
 let curDNALagging = '';
@@ -235,9 +238,9 @@ scene.add(DNAPol2Leading)
 scene.add(DNAPol2Lagging)
 
 const illusionPol2Leading = makeNewDNA(50, 0x000000)[0];
-scene.add(illusionPol2Leading)
+flyingBases.add(illusionPol2Leading)
 const illusionPol2Lagging = makeNewDNA(50, 0x000000)[0];
-scene.add(illusionPol2Lagging)
+flyingBases.add(illusionPol2Lagging)
 
 let animate = true;
 
@@ -250,6 +253,18 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keyup', (event) => {
     if (event.code == 'Space') {
         animate = true;
+    }
+})
+
+document.addEventListener('keydown', (event) => {
+    if (event.key == 'h') {
+        scene.remove(flyingBases)
+    }
+})
+
+document.addEventListener('keyup', (event) => {
+    if (event.key == 'h') {
+        scene.add(flyingBases)
     }
 })
 
@@ -516,7 +531,7 @@ const tick = () => {
                 if (targetBase) {
                     let colour = targetBase.children[1].material.color.getHexString();
                     let group = new THREE.Group();
-                    let temp = makeNewDNA(0, Math.random() < 0.2 ? basePairs['0x' + colour] : colours[Math.floor(Math.random() * 4)])[0];
+                    let temp = makeNewDNA(0, Math.random() < 0.75 ? basePairs['0x' + colour] : colours[Math.floor(Math.random() * 4)])[0];
                     temp.position.y += 50
                     temp.position.x += Math.random() * 100 - 50
                     temp.rotation.z = Math.random() * Math.PI - Math.PI / 2
